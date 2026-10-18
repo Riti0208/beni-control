@@ -4,6 +4,8 @@ Mondo Robotics の Beni を PC から動かすためのコントローラー。�
 [open-beni](https://github.com/Mondo-Robotics/open-beni)（MIT）のロボットモデルと学習済み制御プログラムを
 MuJoCo 上で動かしている。実機が手に入ったら `RobotBackend` の実機版を書けば、制御部と操作側はそのまま使える。
 
+実機の通信仕様（APK を逆解析して判明したもの）は [docs/robot-protocol.md](docs/robot-protocol.md) にまとめてある。実機版 `RobotBackend` を書くときはここを見る。通信全体の俯瞰は [docs/apk-comms.md](docs/apk-comms.md)。
+
 ## セットアップ
 
 ```sh
