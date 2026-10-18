@@ -59,7 +59,7 @@ def main() -> None:
     next_tick = time.perf_counter()
     try:
         while viewer is None or viewer.is_running():
-            if server.take_reset():
+            if server.take("reset"):
                 controller.reset()
             command = server.current()
             try:

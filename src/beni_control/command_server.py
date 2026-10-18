@@ -4,6 +4,8 @@ Client -> robot (any subset of fields; omitted fields keep their last value):
     {"vx": 0.8, "wz": 0.5, "head_yaw": 0.3, "height": 0.11, "pitch": 0.0, "roll": 0.0}
     {"head_yaw": null}   give the head back to the policy
     {"cmd": "reset"}     reset the robot (simulation only)
+    {"cmd": "arm"}       allow the real robot to drive (it starts locked)
+    {"cmd": "disarm"}    lock the real robot again
 
 Robot -> client: telemetry JSON (see sim_main.telemetry) sent to every address
 that sent a packet within the last CLIENT_TIMEOUT seconds.
@@ -36,7 +38,7 @@ class CommandServer:
         self.command = Command()
         self.last_packet = 0.0
         self.clients: dict[tuple, float] = {}
-        self.reset_requested = False
+        self.pending: set[str] = set()
         self.running = True
         self.thread = threading.Thread(target=self._serve, daemon=True)
         self.thread.start()
@@ -63,8 +65,8 @@ class CommandServer:
                 self.command = replace(self.command, **fields)
                 self.last_packet = now
                 self.clients[addr] = now
-                if message.get("cmd") == "reset":
-                    self.reset_requested = True
+                if isinstance(message.get("cmd"), str):
+                    self.pending.add(message["cmd"])
 
     def current(self) -> Command:
         with self.lock:
@@ -74,10 +76,17 @@ class CommandServer:
                 self.command.vx = self.command.wz = 0.0
             return replace(self.command)
 
-    def take_reset(self) -> bool:
+    def take(self, cmd: str) -> bool:
+        """Return True once for each received {"cmd": cmd}."""
         with self.lock:
-            requested, self.reset_requested = self.reset_requested, False
+            requested = cmd in self.pending
+            self.pending.discard(cmd)
             return requested
+
+    def idle_for(self) -> float:
+        """Seconds since the last packet from any client."""
+        with self.lock:
+            return time.monotonic() - self.last_packet
 
     def publish(self, telemetry: dict) -> None:
         now = time.monotonic()

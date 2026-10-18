@@ -8,7 +8,8 @@
     c       give the head back to the policy
     z / x   body lower / higher       (+-5 mm)
     r       reset the robot (simulation)
-    Esc     quit
+    g       arm / lock the real robot (beni-real starts locked)
+    Esc     quit (locks the real robot)
 """
 
 import argparse
@@ -35,11 +36,13 @@ def run(screen, host: str, port: int) -> None:
     target = (host, port)
     command = {"vx": 0.0, "wz": 0.0, "head_yaw": None, "height": 0.11}
     status, last_send = {}, 0.0
+    armed = False
 
     while True:
-        reset = False
+        cmd = None
         key = screen.getch()
         if key == 27:
+            sock.sendto(json.dumps({"vx": 0.0, "wz": 0.0, "cmd": "disarm"}).encode(), target)
             break
         match chr(key) if 0 <= key < 256 else "":
             case "w": command["vx"] = clamp(command["vx"] + 0.25, 2.0)
@@ -53,12 +56,16 @@ def run(screen, host: str, port: int) -> None:
             case "z": command["height"] = max(0.10, command["height"] - 0.005)
             case "x": command["height"] = min(0.12, command["height"] + 0.005)
             case "r":
-                reset = True
+                cmd = "reset"
                 command.update(vx=0.0, wz=0.0, head_yaw=None, height=0.11)
+            case "g":
+                armed = not armed
+                cmd = "arm" if armed else "disarm"
+                command.update(vx=0.0, wz=0.0)
 
         now = time.monotonic()
-        if reset or now - last_send >= SEND_PERIOD:
-            sock.sendto(json.dumps({**command, **({"cmd": "reset"} if reset else {})}).encode(), target)
+        if cmd or now - last_send >= SEND_PERIOD:
+            sock.sendto(json.dumps({**command, **({"cmd": cmd} if cmd else {})}).encode(), target)
             last_send = now
         try:
             while True:
@@ -71,13 +78,18 @@ def run(screen, host: str, port: int) -> None:
         head = "policy" if command["head_yaw"] is None else f"{command['head_yaw']:+.2f} rad"
         screen.addstr(2, 0, f"target  vx {command['vx']:+.2f} m/s   wz {command['wz']:+.2f} rad/s   "
                             f"head {head}   height {command['height'] * 1000:.0f} mm")
-        if status:
+        if "link" in status:
+            link = status["link"]
+            state = "seeding" if link["seeding"] else "ARMED" if link["armed"] else "LOCKED (g to arm)"
+            screen.addstr(3, 0, f"robot   {state}   link {'up' if link['alive'] else 'DOWN'}   "
+                                f"tx {link['tx']} rx {link['rx']}   t {status['t']:.1f} s")
+        elif status:
             sim, imu = status.get("sim", {}), status["imu"]
             vel = sim.get("vel_body", [0, 0, 0])
             screen.addstr(3, 0, f"robot   vx {vel[0]:+.2f} m/s   wz {imu['gyro'][2]:+.2f} rad/s   "
                                 f"tilt {imu['tilt_deg']:4.1f} deg   t {status['t']:.1f} s")
         else:
-            screen.addstr(3, 0, "robot   (no telemetry yet - is beni-sim running?)")
+            screen.addstr(3, 0, "robot   (no telemetry yet - is beni-sim or beni-real running?)")
         for i, line in enumerate(__doc__.strip().splitlines()[3:]):
             screen.addstr(5 + i, 0, line)
         screen.refresh()

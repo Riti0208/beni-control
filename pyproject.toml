@@ -13,6 +13,7 @@ dependencies = [
 beni-sim = "beni_control.sim_main:main"
 beni-teleop = "beni_control.teleop:main"
 beni-mock-robot = "beni_control.mock_robot:main"
+beni-real = "beni_control.real_main:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]

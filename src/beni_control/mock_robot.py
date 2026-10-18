@@ -343,7 +343,8 @@ class MockRobot:
 
         # アプリの制御語（HB）
         raw = None
-        if h.is_hb and len(pkt.payload) >= 8:
+        # 16B 制御語 + 11B ACK ブロックのときだけ。1B のシード HB（0xFE）は制御語ではない
+        if h.is_hb and len(pkt.payload) == 16 + ucp.ACK_BLOCK_LEN:
             try:
                 raw = ucp.decode_control_word(pkt.payload[:8])
             except ucp.UcpError:
