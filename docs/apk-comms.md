@@ -51,6 +51,11 @@
                                                                Turnstile
 ```
 
+```
+付属 UWB 送信機 (RC) ──(UWB 無線。スマホを経由しない)──▶ ロボット
+   アプリは /status/rc/* を購読して表示・較正するだけ（走行制御には関与しない）
+```
+
 ---
 
 ## 3. 経路ごとの詳細
@@ -102,6 +107,8 @@
 | `/status/*` | 28 | `robot/status`, `real_rl/status`, `game/status`, `telemetry/event`, `gateway/telemetry_event`, `hms/event_broadcast`, `ota/upgrade_progress` |
 
 **注目: 走行指令は `/cmd/real_rl/control_request`**（`RealRlControlRequest` → `/cmd/real_rl/control_ack`、`/status/real_rl/status` で状態）。"real (機体) + RL" = **機体側の学習済み制御器への高レベル指令**と読める。open-beni の「機体で policy を回してアプリは vx/wz を送るだけ」という構成と整合的。ゲーム（綱引き/宝探し/モーションセンス）も `/cmd/game/*` `/status/game/*` で同居。
+
+**注意（別系統）**: この UCP 経路とは別に、**付属の UWB 送信機（RC）は機体と直結**しておりスマホを経由しない。アプリは `/status/rc/*`（`joystick_raw` / `fsm_state` / `joystick_calib_progress`）と `/status/uwb/rc_status` を**購読するだけ**で、送るのは較正・バイブ・ファンクションキー設定のみ。スティック値を制御語に詰め直すコードも無く、制御権を RC に譲る判定（`isRemoteControlActive`）もスタブで常に false。詳細は `docs/robot-protocol.md` §3.7。
 
 その他、`/cmd/security/*`（activate / deactivate / attest / e2e_provision / crypto_info）と `/app/v1/.../device-attestation/challenge` を組み合わせた**アプリ・機体・クラウド間のattestationとE2E鍵プロビジョニング**、暗号化ファームウェア（`firmware_encryption_resolver`）がある。
 

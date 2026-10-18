@@ -6,6 +6,8 @@ MuJoCo 上で動かしている。実機が手に入ったら `RobotBackend` の
 
 実機の通信仕様（APK を逆解析して判明したもの）は [docs/robot-protocol.md](docs/robot-protocol.md) にまとめてある。実機版 `RobotBackend` を書くときはここを見る。通信全体の俯瞰は [docs/apk-comms.md](docs/apk-comms.md)。
 
+実機が無くてもアプリと通信して未確定項目を潰せる「機体のふり」ツールがある: [docs/mock-robot.md](docs/mock-robot.md)（`uv run beni-mock-robot`）。
+
 ## セットアップ
 
 ```sh
